@@ -1,24 +1,49 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
-from astrbot.api.star import Context, Star, register
-from astrbot.api import logger
+from star import LLM, Plugin, register, Message, EventType
+import requests
 
-@register("helloworld", "YourName", "一个简单的 Hello World 插件", "1.0.0")
-class MyPlugin(Star):
-    def __init__(self, context: Context):
-        super().__init__(context)
+class ReportAndQueryPlugin(Plugin):
+    name = "举报与查询插件"
+    description = "提供/举报和/查询功能，对接指定API接口"
+    version = "1.0.0"
+    author = "Your Name"
 
-    async def initialize(self):
-        """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
-    
-    # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
-    @filter.command("helloworld")
-    async def helloworld(self, event: AstrMessageEvent):
-        """这是一个 hello world 指令""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
-        user_name = event.get_sender_name()
-        message_str = event.message_str # 用户发的纯文本消息字符串
-        message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
-        logger.info(message_chain)
-        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
+    def __init__(self):
+        super().__init__()
+        # 配置API地址
+        self.query_api = "http://boss.dreamscomtetrue.asia/boss/query.php"
+        self.report_api = "http://boss.dreamscomtetrue.asia/boss/submit.php"
 
-    async def terminate(self):
-        """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
+    @register(command="/查询", help="使用方法: /查询 <内容> - 查询指定内容")
+    async def handle_query(self, llm: LLM, message: Message):
+        # 提取查询内容
+        query_content = message.content.strip()[3:].strip()  # 去除"/查询"前缀
+        
+        if not query_content:
+            return "请提供要查询的内容，使用方法: /查询 <内容>"
+        
+        try:
+            # 调用查询API
+            response = requests.get(f"{self.query_api}?msg={query_content}")
+            # 返回原始响应内容
+            return response.text
+        except Exception as e:
+            return f"查询失败: {str(e)}"
+
+    @register(command="/举报", help="使用方法: /举报 <内容> - 举报指定内容")
+    async def handle_report(self, llm: LLM, message: Message):
+        # 提取举报内容
+        report_content = message.content.strip()[3:].strip()  # 去除"/举报"前缀
+        
+        if not report_content:
+            return "请提供要举报的内容，使用方法: /举报 <内容>"
+        
+        try:
+            # 调用举报API
+            response = requests.get(f"{self.report_api}?msg={report_content}")
+            # 返回原始响应内容
+            return response.text
+        except Exception as e:
+            return f"举报提交失败: {str(e)}"
+
+# 插件入口
+plugin = ReportAndQueryPlugin()
