@@ -6,7 +6,7 @@ from astrbot.api.message_components import Plain
 import aiohttp
 
 @register(
-    "astrbot_plugin_lqbzgaga",  # 插件唯一标识（需与文件夹名一致）
+    "lin2222",  # 插件唯一标识（需与文件夹名一致）
     "你的名字",
     "查询与举报功能插件",
     "v1.0",
